@@ -1,0 +1,19 @@
+name: 每日分析定时器
+
+on:
+  schedule:
+    - cron: '30 7 * * 1-5'   # 工作日 15:30 北京时间
+    - cron: '*/10 * * * *'   # TEMP probe
+  workflow_dispatch:
+
+permissions:
+  actions: write
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch daily analysis
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run daily-analysis.yml --repo "${{ github.repository }}" -f mode=full
