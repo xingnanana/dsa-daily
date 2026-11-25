@@ -2,8 +2,7 @@ name: 每日分析定时器
 
 on:
   schedule:
-    - cron: '30 7 * * 1-5'   # 工作日 15:30 北京时间
-    - cron: '*/10 * * * *'   # TEMP probe（只用于观察定时是否注册，不会触发分析）
+    - cron: '30 7 * * 1-5'   # 工作日 15:30 北京时间（UTC 07:30）
   workflow_dispatch:
 
 permissions:
@@ -16,11 +15,12 @@ jobs:
       - name: Dispatch daily analysis
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TRIGGER_CRON: ${{ github.event.schedule }}
-          EVENT_NAME: ${{ github.event_name }}
         run: |
-          if [ "$EVENT_NAME" = "schedule" ] && [ "$TRIGGER_CRON" != "30 7 * * 1-5" ]; then
-            echo "探针运行（$TRIGGER_CRON），不触发分析"
+          # 只在 15:20–16:20（北京时间）窗口内真正触发，避免 GitHub 延迟投递时半夜发报告
+          NOW=$(TZ=Asia/Shanghai date +%H%M)
+          echo "当前北京时间: $NOW"
+          if [ "$NOW" -lt 1520 ] || [ "$NOW" -gt 1620 ]; then
+            echo "不在 15:20–16:20 窗口内，跳过"
             exit 0
           fi
           echo "触发每日分析…"
