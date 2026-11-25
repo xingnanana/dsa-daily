@@ -3,7 +3,7 @@ name: 每日分析定时器
 on:
   schedule:
     - cron: '30 7 * * 1-5'   # 工作日 15:30 北京时间
-    - cron: '*/10 * * * *'   # TEMP probe
+    - cron: '*/10 * * * *'   # TEMP probe（只用于观察定时是否注册，不会触发分析）
   workflow_dispatch:
 
 permissions:
@@ -16,4 +16,12 @@ jobs:
       - name: Dispatch daily analysis
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh workflow run daily-analysis.yml --repo "${{ github.repository }}" -f mode=full
+          TRIGGER_CRON: ${{ github.event.schedule }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          if [ "$EVENT_NAME" = "schedule" ] && [ "$TRIGGER_CRON" != "30 7 * * 1-5" ]; then
+            echo "探针运行（$TRIGGER_CRON），不触发分析"
+            exit 0
+          fi
+          echo "触发每日分析…"
+          gh workflow run daily-analysis.yml --repo "${{ github.repository }}" -f mode=full
